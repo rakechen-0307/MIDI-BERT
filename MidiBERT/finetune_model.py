@@ -1,3 +1,4 @@
+import time
 import math
 import numpy as np
 import random
@@ -22,10 +23,12 @@ class TokenClassification(nn.Module):
         )
     
     def forward(self, y, attn, layer):
+        start_time = time.time()
         # feed to bert 
         y = self.midibert(y, attn, output_hidden_states=True)
         #y = y.last_hidden_state         # (batch_size, seq_len, 768)
         y = y.hidden_states[layer]
+        print("BERT time:", time.time() - start_time)
         return self.classifier(y)
 
 

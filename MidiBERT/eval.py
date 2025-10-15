@@ -37,7 +37,7 @@ def get_args():
     ### parameter setting ###
     parser.add_argument('--num_workers', type=int, default=5)
     parser.add_argument('--class_num', type=int)
-    parser.add_argument('--batch_size', type=int, default=12)
+    parser.add_argument('--batch_size', type=int, default=5)
     parser.add_argument('--max_seq_len', type=int, default=512, help='all sequences are padded to `max_seq_len`')
     parser.add_argument('--hs', type=int, default=768)
     parser.add_argument("--index_layer", type=int, default=12, help="number of layers")
@@ -148,7 +148,14 @@ def main():
         seq_class = True
         
     X_train, X_val, X_test, y_train, y_val, y_test = load_data(dataset, args.task)
-    
+    X_test_new = []
+    y_test_new = []
+    for i in range(len(X_test)):
+        X_test_new.append(X_test[i][:40])
+        y_test_new.append(y_test[i][:40])
+    X_test = np.array(X_test_new)
+    y_test = np.array(y_test_new)
+
     trainset = FinetuneDataset(X=X_train, y=y_train)
     validset = FinetuneDataset(X=X_val, y=y_val) 
     testset = FinetuneDataset(X=X_test, y=y_test) 

@@ -35,7 +35,7 @@ class FinetuneTrainer:
 
 
         if torch.cuda.device_count() > 1 and not cpu:
-            print("Use %d GPUS" % torch.cuda.device_count())
+            print("Use %d GPUS" % len(cuda_devices))
             self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
         self.train_data = train_dataloader
