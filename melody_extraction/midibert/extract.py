@@ -40,7 +40,8 @@ def get_args():
 
     ### path setup ###
     parser.add_argument('--input_path', type=str, required=True, help="path to the input midi file")
-    parser.add_argument('--output_path', type=str, default=None, help="path to the output midi file")
+    parser.add_argument('--output_path_melody', type=str, default=None, help="path to the output melody midi file")
+    parser.add_argument('--output_path_non_melody', type=str, default=None, help="path to the output non-melody midi file")
     parser.add_argument('--dict_file', type=str, default='data_creation/prepare_data/dict/CP.pkl')
     parser.add_argument('--ckpt', type=str, default='')
 
@@ -57,9 +58,12 @@ def get_args():
     root = 'result/finetune/'
     args.ckpt = root + 'melody_default/model_best.ckpt' if args.ckpt=='' else args.ckpt
 
-    if not args.output_path:
+    if not args.output_path_melody:
         basename = args.input_path.split('/')[-1].split('.')[0]
-        args.output_path = f'{basename}_melody.mid'
+        args.output_path_melody = f'{basename}_melody.mid'
+    if not args.output_path_non_melody:
+        basename = args.input_path.split('/')[-1].split('.')[0]
+        args.output_path_non_melody = f'{basename}_non_melody.mid'
 
     return args
 
@@ -107,7 +111,7 @@ def inference(model, tokens, pad_CP, device):
 
 def get_melody_events(events, inputs, preds, pad_CP, bridge=True):
     """
-        Filter out predicted melody events.
+        Filter out predicted melody events and accompaniment events.
         Arguments:
         - events: complete events, including tempo changes and velocity
         - inputs: input compact_CP tokens (batch, seq, CP_class), np.array
@@ -122,18 +126,26 @@ def get_melody_events(events, inputs, preds, pad_CP, bridge=True):
     pad_CP = np.array(pad_CP)
 
     melody_events = []
+    accom_events = []
     note_ind = 0
     for event in events:
-        if len(event) == 5:     # filter out melody events
+        if len(event) == 5:     # filter note events (melody vs accompaniment)
             is_melody = preds[note_ind] == 1 or (bridge and preds[note_ind] == 2)
+            is_accompaniment = preds[note_ind] == 3 or (not bridge and preds[note_ind] == 2)
             is_valid_note = np.all(inputs[note_ind] != pad_CP)
-            if is_valid_note and is_melody:
-                melody_events.append(event)
+            
+            if is_valid_note:
+                if is_melody:
+                    melody_events.append(event)
+                elif is_accompaniment:
+                    accom_events.append(event)
             note_ind += 1
         else:
+            # Non-note events (tempo, bar markers) go to both tracks
             melody_events.append(event)
+            accom_events.append(event)
 
-    return melody_events
+    return melody_events, accom_events
 
 
 def events2midi(events, output_path, prompt_path=None):
@@ -271,11 +283,13 @@ def main():
     #np.save("pred.npy", predictions)
   
     # post-process    
-    melody_events = get_melody_events(events, tokens, predictions, pad_CP, bridge=args.bridge)
+    melody_events, non_melody_events = get_melody_events(events, tokens, predictions, pad_CP, bridge=args.bridge)
     print(f"Melody Events: {len(melody_events)}/{len(events)}")
+    print(f"Non-melody Events: {len(non_melody_events)}/{len(events)}")
 
     # save melody midi
-    melody_midi = events2midi(melody_events, args.output_path)
+    melody_midi = events2midi(melody_events, args.output_path_melody)
+    non_melody_midi = events2midi(non_melody_events, args.output_path_non_melody)
 
 
 if __name__ == '__main__':
