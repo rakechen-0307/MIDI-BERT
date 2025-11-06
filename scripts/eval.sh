@@ -1,7 +1,7 @@
 export PYTHONPATH="."
 
 # melody
-python3 MidiBERT/eval.py --task=melody --cuda_devices 2
+python3 MidiBERT/eval.py --task=melody --cuda_devices 0
 
 # velocity
 # python3 MidiBERT/eval.py --task=velociy --cpu

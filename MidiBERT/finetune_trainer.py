@@ -3,7 +3,6 @@ import numpy as np
 import tqdm
 import torch
 import torch.nn as nn
-from transformers import AdamW
 from torch.nn.utils import clip_grad_norm_
 
 from MidiBERT.finetune_model import TokenClassification, SequenceClassification
@@ -41,8 +40,8 @@ class FinetuneTrainer:
         self.train_data = train_dataloader
         self.valid_data = valid_dataloader
         self.test_data = test_dataloader
-        
-        self.optim = AdamW(self.model.parameters(), lr=lr, weight_decay=0.01)
+
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=0.01)
         self.loss_func = nn.CrossEntropyLoss(reduction='none')
 
         self.testset_shape = testset_shape
